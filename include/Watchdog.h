@@ -29,25 +29,10 @@
 #include <memory>
 #include <atomic>
 #include <mutex>
+#include <chrono>
 
-#ifdef CINDER_CINDER
-    #include "cinder/Filesystem.h"
-    #if CINDER_VERSION < 900
-        #include "cinder/app/AppNative.h"
-    #else
-        #include "cinder/app/App.h"
-    #endif
-#else
-    #if defined( CINDER_WINRT )
-        #include <filesystem>
-        namespace ci { namespace fs = std::tr2::sys; }
-    #else
-        #define BOOST_FILESYSTEM_VERSION 3
-        #define BOOST_FILESYSTEM_NO_DEPRECATED
-        #include <boost/filesystem.hpp>
-        namespace ci { namespace fs = boost::filesystem; }
-    #endif
-#endif
+#include "cinder/Filesystem.h"
+#include "cinder/app/App.h"
 
 // Windows Issue :
 // For the moment the overloaded version of wd::watch has a different name on windows
@@ -117,7 +102,7 @@ public:
     //! Sets the last modification time of a file or directory. by default sets the time to the current time
     static void touch( const ci::fs::path &path, std::time_t time = std::time( nullptr ) )
     {
-        
+        std::chrono::system_clock::time_point time_point = std::chrono::system_clock::from_time_t(time);
         // if the file or directory exists change its last write time
         if( ci::fs::exists( path ) ){
             ci::fs::last_write_time( path, time );
@@ -125,8 +110,8 @@ public:
         }
         // if not, visit each path if there's a wildcard
         if( path.string().find( "*" ) != std::string::npos ){
-            visitWildCardPath( path, [time]( const ci::fs::path &p ){
-                ci::fs::last_write_time( p, time );
+            visitWildCardPath( path, [time_point]( const ci::fs::path &p ){
+                ci::fs::last_write_time( p, time_point );
                 return false;
             } );
         }
@@ -384,7 +369,7 @@ protected:
         bool hasChanged( const ci::fs::path &path )
         {
             // get the last modification time
-            std::time_t time = ci::fs::last_write_time( path );
+            std::time_t time = std::chrono::system_clock::to_time_t(ci::fs::last_write_time( path ));
             // add a new modification time to the map
             std::string key = path.string();
             if( mModificationTimes.find( key ) == mModificationTimes.end() ) {
