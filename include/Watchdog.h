@@ -105,7 +105,7 @@ public:
         std::chrono::system_clock::time_point time_point = std::chrono::system_clock::from_time_t(time);
         // if the file or directory exists change its last write time
         if( ci::fs::exists( path ) ){
-            ci::fs::last_write_time( path, time );
+            ci::fs::last_write_time( path, time_point );
             return;
         }
         // if not, visit each path if there's a wildcard
